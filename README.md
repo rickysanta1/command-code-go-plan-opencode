@@ -66,6 +66,7 @@ env, then the saved key, then the per-request `Authorization` header.
 | `--port` | Port | `8787` |
 | `--api-key` | Command Code API key for this run (not saved) | — |
 | `--setup-opencode` | Generate OpenCode provider config | — |
+| `--sufix <text>` | Rename the OpenCode provider to `CC <text>` | — |
 | `-h, --help` | Show help | — |
 | `-V, --version` | Show version | — |
 
@@ -85,7 +86,7 @@ providers and settings are untouched.
   "provider": {
     "commandcode": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Command Code V3",
+      "name": "CC",
       "options": {
         "baseURL": "http://127.0.0.1:8787/v1",
         "apiKey": "proxy-managed"
@@ -96,6 +97,25 @@ providers and settings are untouched.
     }
   }
 }
+```
+
+### Renaming the provider
+
+The base name is `CC`. The `--sufix` flag appends a text after it:
+
+```bash
+commandcode-api-proxy --sufix beta
+```
+
+That sets `"name": "CC beta"` and starts the server, printing the change on an
+extra line after the `proxy on ...` message. The suffix is replaced on each run,
+not accumulated: `--sufix dev` after `--sufix beta` yields `"CC dev"`. The
+config must already exist (run `--setup-opencode` first).
+
+You can also generate everything in one go:
+
+```bash
+commandcode-api-proxy --setup-opencode --sufix beta
 ```
 
 ## Run without installing

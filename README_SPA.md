@@ -67,6 +67,7 @@ entorno `COMMANDCODE_API_KEY`, luego la key guardada, luego el header
 | `--port` | Puerto | `8787` |
 | `--api-key` | API key de Command Code para esa ejecución (no se guarda) | — |
 | `--setup-opencode` | Genera la configuración del provider para OpenCode | — |
+| `--sufix <texto>` | Renombra el provider de OpenCode a `CC <texto>` | — |
 | `-h, --help` | Muestra la ayuda | — |
 | `-V, --version` | Muestra la versión | — |
 
@@ -86,7 +87,7 @@ providers y ajustes existentes no se modifican.
   "provider": {
     "commandcode": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Command Code V3",
+      "name": "CC",
       "options": {
         "baseURL": "http://127.0.0.1:8787/v1",
         "apiKey": "proxy-managed"
@@ -97,6 +98,25 @@ providers y ajustes existentes no se modifican.
     }
   }
 }
+```
+
+### Renombrar el provider
+
+El nombre base es `CC`. El flag `--sufix` añade un texto detrás:
+
+```bash
+commandcode-api-proxy --sufix beta
+```
+
+Eso deja `"name": "CC beta"` y arranca el servidor, mostrando el cambio en una
+línea extra tras el mensaje `proxy on ...`. El sufijo se reemplaza en cada
+ejecución, no se acumula: `--sufix dev` después de `--sufix beta` produce
+`"CC dev"`. Requiere que la config ya exista (ejecuta `--setup-opencode` primero).
+
+También puedes generarlo todo de una vez:
+
+```bash
+commandcode-api-proxy --setup-opencode --sufix beta
 ```
 
 ## Ejecución sin instalar

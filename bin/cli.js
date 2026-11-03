@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 import { log } from "node:console";
 import { startServer } from "../server.js";
 import { getApiKey, setApiKey, clearApiKey, maskKey, configPath } from "../config.js";
-import { writeOpencodeConfig } from "../opencode-setup.js";
+import { writeOpencodeConfig, setOpencodeSuffix } from "../opencode-setup.js";
 
 const NAME = "commandcode-api-proxy";
 const VERSION = "1.0.0";
@@ -22,6 +22,7 @@ Options:
   --port <n>          Port (default 8787)
   --api-key <key>     Command Code API key for this run (not saved)
   --setup-opencode    Write the OpenCode provider config and exit
+  --sufix <text>      Rename the OpenCode provider to "CC <text>"
   -h, --help          Show this help
   -V, --version       Show version
 
@@ -32,7 +33,9 @@ Examples:
   ${NAME} auth login --force
   ${NAME} auth logout
   ${NAME} serve --host 127.0.0.1 --port 8787
-  ${NAME} --setup-opencode`;
+  ${NAME} --setup-opencode
+  ${NAME} --setup-opencode --sufix beta
+  ${NAME} --sufix dev             Rename the provider, then start the server`;
 }
 
 function fail(msg, code = 1) {
@@ -168,8 +171,10 @@ async function main() {
     fail(`unknown auth subcommand ${sub || "(none)"}`);
   }
 
+    const SUFFIX_FLAG = "--sufix";
+
   const flags = new Set(argv.filter((a) => a.startsWith("-")));
-  for (const f of [KEY_FLAG, SETUP_FLAG, "--host", "--port"]) flags.delete(f);
+  for (const f of [KEY_FLAG, SETUP_FLAG, SUFFIX_FLAG, "--host", "--port"]) flags.delete(f);
   const leftover = [...flags].filter((f) => f !== "-h" && f !== "--help" && f !== "-V" && f !== "--version");
   if (leftover.length) fail(`unknown option ${leftover[0]}`);
 
@@ -183,18 +188,41 @@ async function main() {
   const apiKeyIdx = args.indexOf(KEY_FLAG);
   const apiKey = apiKeyIdx !== -1 ? args[apiKeyIdx + 1] : undefined;
 
+  const suffixIdx = args.indexOf(SUFFIX_FLAG);
+  let suffix;
+  if (suffixIdx !== -1) {
+    suffix = args[suffixIdx + 1];
+    if (!suffix || suffix.startsWith("--")) fail(`missing value for ${SUFFIX_FLAG}`);
+    suffix = suffix.trim();
+    if (!suffix) fail(`${SUFFIX_FLAG} needs a non-empty text`);
+  }
+
   if (ask(argv, SETUP_FLAG)) {
     try {
-      const { file, baseURL } = writeOpencodeConfig({
+      const { file, baseURL, name } = writeOpencodeConfig({
         host: host || "127.0.0.1",
         port: port || 8787,
+        suffix,
       });
       log(`OpenCode config written to ${file}`);
+      log(`provider name: ${name}`);
       log(`provider baseURL: ${baseURL}`);
       log(`model: deepseek-v4-pro (proxy-managed)`);
     } catch (err) {
       fail(err.message);
     }
+    return;
+  }
+
+  if (suffix !== undefined) {
+    let notice;
+    try {
+      const { file, name } = setOpencodeSuffix(suffix);
+      notice = `provider name updated to "${name}" in ${file}`;
+    } catch (err) {
+      fail(err.message);
+    }
+    startServer({ host, port, apiKey, notice });
     return;
   }
 

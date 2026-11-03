@@ -232,6 +232,7 @@ export function startServer(options = {}) {
   server.listen(PORT, HOST, () => {
     const log = options.log || console.log;
     log(`proxy on http://${HOST === "0.0.0.0" || HOST === "::" ? "127.0.0.1" : HOST}:${PORT} model=${resolveModel("deepseek/deepseek-v4.1-flash")} models=${MODELS.length} key=${STATIC_KEY ? "saved/env/flag" : "per-request header only"}`);
+    if (options.notice) log(options.notice);
   });
 
   return server;
