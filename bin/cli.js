@@ -34,7 +34,7 @@ Options:
   -h, --help          Show this help
   -V, --version       Show version
 
-Key precedence: --api-key > COMMANDCODE_API_KEY env > saved key > Authorization header.
+Key precedence: --api-key/COMMANDCODE_API_KEY > plausible request key (user_...) > saved key (re-read per request).
 
 Examples:
   ${NAME} auth login

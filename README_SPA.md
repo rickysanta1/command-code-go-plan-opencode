@@ -55,9 +55,14 @@ curl -sS http://127.0.0.1:8787/health
 | `auth status` | Muestra el estado de la key, enmascarada. |
 
 La key se guarda en `~/.commandcode-proxy/config.json` con permisos
-restrictivos. Precedencia de la key: flag `--api-key`, luego la variable de
-entorno `COMMANDCODE_API_KEY`, luego la key guardada, luego el header
-`Authorization` de cada petición.
+restrictivos y se relee en cada petición, así que `auth login` surte efecto sin
+reiniciar el proxy. Precedencia de la key por petición: flag `--api-key` /
+variable `COMMANDCODE_API_KEY`, luego una key plausible enviada por el cliente
+(header `user_…`, p. ej. la que escribes en el diálogo Connect de opencode),
+luego la key guardada; los placeholders enviados por clientes (`proxy-managed`,
+`{env:…}` sin resolver) nunca llegan al upstream mientras exista una key real.
+Si Command Code rechaza la key igualmente, el proxy responde indicando la
+fuente de la key usada (enmascarada) y cómo corregirla.
 
 ## Opciones
 

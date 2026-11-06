@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { loadEnv } from "./env.js";
 import { resolveModel, toUpstream, readNdjson } from "./upstream.js";
 import { createState, applyEvent, toolOf, toToolCalls, toFinishReason, toUsage } from "./stream.js";
-import { getApiKey } from "./config.js";
+import { getApiKey, maskKey } from "./config.js";
 
 const BASE = "https://api.commandcode.ai";
 const MODELS = ["deepseek/deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash-fast", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro"];
@@ -51,15 +51,41 @@ export function startServer(options = {}) {
   const VERSION = process.env.CMD_VERSION || "1.79.2";
   const HOST = options.host || "127.0.0.1";
   const PORT = options.port || Number(process.env.PORT || 8787);
-  const STATIC_KEY = options.apiKey || process.env.COMMANDCODE_API_KEY || getApiKey() || null;
+  const RUN_STATIC_KEY = options.apiKey || process.env.COMMANDCODE_API_KEY || null;
   const UPSTREAM_TIMEOUT = Math.max(1000, Number(process.env.UPSTREAM_TIMEOUT || 60000));
   const MAX_BODY_BYTES = Math.max(1024, Number(process.env.MAX_BODY_BYTES || 20 * 1024 * 1024));
 
   async function handleCompletions(req, res, body) {
     const authHeader = req.headers.authorization;
-    const headerKey = authHeader ? authHeader.replace(/^Bearer\s+/i, "") : null;
-    const key = STATIC_KEY || headerKey;
-    if (!key) return send(res, 401, { error: { message: "No API key. Run `commandcode-api-proxy auth login` or set --api-key.", type: "auth_error" } });
+    const headerKey = authHeader ? authHeader.replace(/^Bearer\s+/i, "").trim() : null;
+    // Pick the key sent upstream, with precedence:
+    //   --api-key / COMMANDCODE_API_KEY (this run)
+    //   > a plausible per-request header key (what opencode's Connect dialog
+    //     stores after the user types it)
+    //   > the saved key (re-read per request, so `auth login` needs no restart)
+    //   > any other header key (last resort).
+    // Placeholders sent by clients ("proxy-managed", unresolved "{env:...}")
+    // never reach upstream while a real key exists.
+    const headerIsReal = !!headerKey && headerKey.startsWith("user_");
+    const savedKey = getApiKey();
+    const key = RUN_STATIC_KEY || (headerIsReal ? headerKey : savedKey) || savedKey || headerKey || null;
+    const keySrc = RUN_STATIC_KEY
+      ? "flag/env"
+      : headerIsReal
+        ? "opencode/request key"
+        : savedKey
+          ? "saved key"
+          : headerKey
+            ? "request header"
+            : "none";
+    if (!key) {
+      return send(res, 401, {
+        error: {
+          message: "No Command Code key available. Fix it with either: `commandcode-api-proxy auth login`, set COMMANDCODE_API_KEY, or paste a key in the opencode provider dialog (starts with user_).",
+          type: "auth_error",
+        },
+      });
+    }
 
     const ac = new AbortController();
     res.on("close", () => {
@@ -94,6 +120,17 @@ export function startServer(options = {}) {
 
     if (!r.ok) {
       const text = await r.text().catch(() => "");
+      if (r.status === 401) {
+        return send(res, 401, {
+          error: {
+            message:
+              `Command Code rejected the key in use (${keySrc}: ${maskKey(key)}). ` +
+              "Fix it with `commandcode-api-proxy auth login` (paste the key from commandcode.ai/settings) " +
+              "or re-enter it in the opencode provider dialog; then retry without restarting this proxy.",
+            type: "auth_error",
+          },
+        });
+      }
       return send(res, r.status, { error: { message: text, type: "upstream_error" } });
     }
 
@@ -231,7 +268,7 @@ export function startServer(options = {}) {
 
   server.listen(PORT, HOST, () => {
     const log = options.log || console.log;
-    log(`proxy on http://${HOST === "0.0.0.0" || HOST === "::" ? "127.0.0.1" : HOST}:${PORT} model=${resolveModel("deepseek/deepseek-v4.1-flash")} models=${MODELS.length} key=${STATIC_KEY ? "saved/env/flag" : "per-request header only"}`);
+    log(`proxy on http://${HOST === "0.0.0.0" || HOST === "::" ? "127.0.0.1" : HOST}:${PORT} model=${resolveModel("deepseek/deepseek-v4.1-flash")} models=${MODELS.length} key=${RUN_STATIC_KEY ? "flag/env" : getApiKey() ? "saved (re-read per request)" : "per-request header only"}`);
     if (options.notice) log(options.notice);
   });
 

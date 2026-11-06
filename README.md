@@ -55,8 +55,13 @@ curl -sS http://127.0.0.1:8787/health
 | `auth status` | Show key state, masked. |
 
 The key is saved to `~/.commandcode-proxy/config.json` with restrictive
-permissions. Key precedence: `--api-key` flag, then `COMMANDCODE_API_KEY`
-env, then the saved key, then the per-request `Authorization` header.
+permissions and is re-read on every request, so `auth login` takes effect
+without restarting the proxy. Key precedence per request: `--api-key` flag /
+`COMMANDCODE_API_KEY` env, then a plausible key sent by the client (`user_…`
+header, e.g. the one typed in opencode's Connect dialog), then the saved key;
+placeholder keys sent by clients (`proxy-managed`, unresolved `{env:…}`) never
+reach upstream while a real key exists. If Command Code rejects the key anyway,
+the proxy answers with the offending key source masked, plus how to fix it.
 
 ## Options
 
