@@ -23,20 +23,20 @@ llamarlo. Este proxy usa el mismo endpoint.
 npm install -g command-code-proxy
 ```
 
-Tras la instalación, el comando `commandcode-api-proxy` queda en el PATH.
+Tras la instalación, el comando `command-code-proxy` queda en el PATH.
 
 ## Inicio rápido
 
 1. Guarda tu key (consíguela en commandcode.ai/settings):
 
 ```bash
-commandcode-api-proxy auth login
+command-code-proxy auth login
 ```
 
 2. Arranca el servidor:
 
 ```bash
-commandcode-api-proxy
+command-code-proxy
 ```
 
 3. Pruébalo:
@@ -81,7 +81,7 @@ fuente de la key usada (enmascarada) y cómo corregirla.
 ## Configuración de OpenCode
 
 ```bash
-commandcode-api-proxy --setup-opencode --port 8787
+command-code-proxy --setup-opencode --port 8787
 ```
 
 Este comando fusiona un bloque `provider.commandcode` en
@@ -121,8 +121,8 @@ Hay dos escenarios:
 y genera el config igual que siempre:
 
 ```bash
-commandcode-api-proxy auth login   # guarda la key dentro de WSL también
-commandcode-api-proxy --setup-opencode
+command-code-proxy auth login   # guarda la key dentro de WSL también
+command-code-proxy --setup-opencode
 ```
 
 `--setup-opencode` detecta WSL y apunta a `127.0.0.1`. Nota: `auth login` en
@@ -134,13 +134,13 @@ alcanza los servicios de Windows. En Windows arranca el proxy en todas las
 interfaces:
 
 ```bat
-commandcode-api-proxy --host 0.0.0.0
+command-code-proxy --host 0.0.0.0
 ```
 
 y dentro de WSL:
 
 ```bash
-commandcode-api-proxy --setup-opencode --client-host auto
+command-code-proxy --setup-opencode --client-host auto
 ```
 
 `auto` resuelve la IP del host Windows (gateway de la ruta por defecto, o el
@@ -153,7 +153,7 @@ una dirección concreta: `--client-host 172.18.144.1`.
 El nombre base es `CC`. El flag `--sufix` añade un texto detrás:
 
 ```bash
-commandcode-api-proxy --sufix beta
+command-code-proxy --sufix beta
 ```
 
 Eso deja `"name": "CC beta"` y arranca el servidor, mostrando el cambio en una
@@ -164,7 +164,7 @@ ejecución, no se acumula: `--sufix dev` después de `--sufix beta` produce
 También puedes generarlo todo de una vez:
 
 ```bash
-commandcode-api-proxy --setup-opencode --sufix Rickysanta197
+command-code-proxy --setup-opencode --sufix Rickysanta197
 ```
 
 ## Ejecución sin instalar

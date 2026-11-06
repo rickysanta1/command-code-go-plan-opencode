@@ -81,7 +81,7 @@ export function startServer(options = {}) {
     if (!key) {
       return send(res, 401, {
         error: {
-          message: "No Command Code key available. Fix it with either: `commandcode-api-proxy auth login`, set COMMANDCODE_API_KEY, or paste a key in the opencode provider dialog (starts with user_).",
+          message: "No Command Code key available. Fix it with either: `command-code-proxy auth login`, set COMMANDCODE_API_KEY, or paste a key in the opencode provider dialog (starts with user_).",
           type: "auth_error",
         },
       });
@@ -125,7 +125,7 @@ export function startServer(options = {}) {
           error: {
             message:
               `Command Code rejected the key in use (${keySrc}: ${maskKey(key)}). ` +
-              "Fix it with `commandcode-api-proxy auth login` (paste the key from commandcode.ai/settings) " +
+              "Fix it with `command-code-proxy auth login` (paste the key from commandcode.ai/settings) " +
               "or re-enter it in the opencode provider dialog; then retry without restarting this proxy.",
             type: "auth_error",
           },

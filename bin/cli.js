@@ -9,7 +9,7 @@ import {
   isWsl,
 } from "../opencode-setup.js";
 
-const NAME = "commandcode-api-proxy";
+const NAME = "command-code-proxy";
 const VERSION = "1.0.0";
 
 function usage() {
@@ -255,10 +255,10 @@ async function main() {
       if (!suffix) log(`tip: --sufix <text> renames the provider (e.g. "CC Rickysanta197")`);
       if (fromWindowsHost) {
         log(`WSL detected: baseURL points at the Windows host (${baseURL}).`);
-        log(`Make sure the proxy runs on Windows with: commandcode-api-proxy --host 0.0.0.0 --port ${port || 8787}`);
+        log(`Make sure the proxy runs on Windows with: command-code-proxy --host 0.0.0.0 --port ${port || 8787}`);
       } else if (isWsl()) {
         log(`WSL detected: baseURL points at 127.0.0.1, expecting the proxy inside this WSL.`);
-        log(`Run 'commandcode-api-proxy auth login' inside WSL (or run --setup-opencode --client-host auto to target the Windows proxy).`);
+        log(`Run 'command-code-proxy auth login' inside WSL (or run --setup-opencode --client-host auto to target the Windows proxy).`);
       }
       if (legacyFrom) {
         log(`migrated existing config from ${legacyFrom}; you can remove that legacy file.`);

@@ -4,7 +4,7 @@
   "description": "OpenAI-compatible proxy for Command Code /alpha/generate",
   "main": "server.js",
   "bin": {
-    "commandcode-api-proxy": "bin/cli.js"
+    "command-code-proxy": "bin/cli.js"
   },
   "files": [
     "bin/",

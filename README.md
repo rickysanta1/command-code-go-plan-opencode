@@ -23,20 +23,20 @@ it. This proxy uses the same endpoint.
 npm install -g command-code-proxy
 ```
 
-After that the command `commandcode-api-proxy` is on the PATH.
+After that the command `command-code-proxy` is on the PATH.
 
 ## Quick start
 
 1. Save your key (get it from commandcode.ai/settings):
 
 ```bash
-commandcode-api-proxy auth login
+command-code-proxy auth login
 ```
 
 2. Start the server:
 
 ```bash
-commandcode-api-proxy
+command-code-proxy
 ```
 
 3. Test it:
@@ -80,7 +80,7 @@ the proxy answers with the offending key source masked, plus how to fix it.
 ## OpenCode setup
 
 ```bash
-commandcode-api-proxy --setup-opencode --port 8787
+command-code-proxy --setup-opencode --port 8787
 ```
 
 This merges a `provider.commandcode` block into
@@ -117,7 +117,7 @@ real key is held by the proxy (`auth login`).
 The base name is `CC`. The `--sufix` flag appends a text after it:
 
 ```bash
-commandcode-api-proxy --sufix beta
+command-code-proxy --sufix beta
 ```
 
 That sets `"name": "CC beta"` and starts the server, printing the change on an
@@ -128,7 +128,7 @@ config must already exist (run `--setup-opencode` first).
 You can also generate everything in one go:
 
 ```bash
-commandcode-api-proxy --setup-opencode --sufix beta
+command-code-proxy --setup-opencode --sufix beta
 ```
 
 ## OpenCode inside WSL
@@ -139,8 +139,8 @@ Two scenarios:
 and generate the config as usual:
 
 ```bash
-commandcode-api-proxy auth login   # the key is saved inside WSL too
-commandcode-api-proxy --setup-opencode
+command-code-proxy auth login   # the key is saved inside WSL too
+command-code-proxy --setup-opencode
 ```
 
 `--setup-opencode` detects WSL and points at `127.0.0.1`. Note: `auth login` on
@@ -151,13 +151,13 @@ environment.
 not reach Windows services. On Windows bind the proxy to all interfaces:
 
 ```bat
-commandcode-api-proxy --host 0.0.0.0
+command-code-proxy --host 0.0.0.0
 ```
 
 and inside WSL:
 
 ```bash
-commandcode-api-proxy --setup-opencode --client-host auto
+command-code-proxy --setup-opencode --client-host auto
 ```
 
 `auto` resolves the Windows host IP (default gateway, or the `nameserver` in
