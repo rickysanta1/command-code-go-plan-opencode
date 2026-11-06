@@ -66,7 +66,9 @@ entorno `COMMANDCODE_API_KEY`, luego la key guardada, luego el header
 | `--host` | Dirección de escucha | `127.0.0.1` |
 | `--port` | Puerto | `8787` |
 | `--api-key` | API key de Command Code para esa ejecución (no se guarda) | — |
-| `--setup-opencode` | Genera la configuración del provider para OpenCode | — |
+| `--setup-opencode` | Genera la config del provider para OpenCode (`opencode.jsonc`) | — |
+| `--client-host <addr\|auto>` | Dirección a la que conecta opencode; `auto`/`windows` resuelve la IP del host Windows dentro de WSL | dirección de escucha |
+| `--env-key <NAME>` | Variable de entorno interpolada en `apiKey` en la config de opencode | `MI_PROXY_API_KEY` |
 | `--sufix <texto>` | Renombra el provider de OpenCode a `CC <texto>` | — |
 | `-h, --help` | Muestra la ayuda | — |
 | `-V, --version` | Muestra la versión | — |
@@ -78,19 +80,21 @@ commandcode-api-proxy --setup-opencode --port 8787
 ```
 
 Este comando fusiona un bloque `provider.commandcode` en
-`~/.config/opencode/opencode.json` (o `OPENCODE_CONFIG` si está definida). Los
-providers y ajustes existentes no se modifican.
+`~/.config/opencode/opencode.jsonc` (o `OPENCODE_CONFIG` si está definida). El
+archivo se escribe como JSONC con cabecera de comentarios. Si existe el
+`opencode.json` antiguo (versiones previas), se migra al nuevo `.jsonc` y se
+conservan el resto de providers y ajustes.
 
-```json
+```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
     "commandcode": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "CC",
+      "name": "CC Rickysanta197",
       "options": {
         "baseURL": "http://127.0.0.1:8787/v1",
-        "apiKey": "proxy-managed"
+        "apiKey": "{env:MI_PROXY_API_KEY}"
       },
       "models": {
         "deepseek-v4-pro": { "name": "DeepSeek V4 Pro" }
@@ -99,6 +103,45 @@ providers y ajustes existentes no se modifican.
   }
 }
 ```
+
+`apiKey` usa interpolación de entorno de opencode: exporta la variable antes de
+arrancar opencode (`export MI_PROXY_API_KEY=x`). El contenido no importa para el
+upstream: la key real la guarda el proxy (`auth login`).
+
+## OpenCode dentro de WSL
+
+Hay dos escenarios:
+
+**Proxy dentro de WSL (recomendado).** Instala y corre el proxy en la misma WSL
+y genera el config igual que siempre:
+
+```bash
+commandcode-api-proxy auth login   # guarda la key dentro de WSL también
+commandcode-api-proxy --setup-opencode
+```
+
+`--setup-opencode` detecta WSL y apunta a `127.0.0.1`. Nota: `auth login` en
+Windows no se comparte con WSL; la key vive en `~/.commandcode-proxy/` de cada
+entorno.
+
+**Proxy en Windows, opencode en WSL.** En WSL2 (modo NAT) `127.0.0.1` no
+alcanza los servicios de Windows. En Windows arranca el proxy en todas las
+interfaces:
+
+```bat
+commandcode-api-proxy --host 0.0.0.0
+```
+
+y dentro de WSL:
+
+```bash
+commandcode-api-proxy --setup-opencode --client-host auto
+```
+
+`auto` resuelve la IP del host Windows (gateway de la ruta por defecto, o el
+`nameserver` de `/etc/resolv.conf`) y la escribe en `baseURL`. Si tu WSL usa
+redes en modo *mirrored*, `127.0.0.1` funciona sin cambios. También puedes pasar
+una dirección concreta: `--client-host 172.18.144.1`.
 
 ### Renombrar el provider
 
@@ -116,7 +159,7 @@ ejecución, no se acumula: `--sufix dev` después de `--sufix beta` produce
 También puedes generarlo todo de una vez:
 
 ```bash
-commandcode-api-proxy --setup-opencode --sufix beta
+commandcode-api-proxy --setup-opencode --sufix Rickysanta197
 ```
 
 ## Ejecución sin instalar

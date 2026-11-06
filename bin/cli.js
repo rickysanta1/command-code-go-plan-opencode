@@ -3,7 +3,11 @@ import { createInterface } from "node:readline";
 import { log } from "node:console";
 import { startServer } from "../server.js";
 import { getApiKey, setApiKey, clearApiKey, maskKey, configPath } from "../config.js";
-import { writeOpencodeConfig, setOpencodeSuffix } from "../opencode-setup.js";
+import {
+  writeOpencodeConfig,
+  setOpencodeSuffix,
+  isWsl,
+} from "../opencode-setup.js";
 
 const NAME = "commandcode-api-proxy";
 const VERSION = "1.0.0";
@@ -18,10 +22,14 @@ Usage:
   ${NAME} auth status            Show whether a key is configured
 
 Options:
-  --host <addr>       Bind address (default 127.0.0.1)
+  --host <addr>       Bind address (default 127.0.0.1, use 0.0.0.0 for WSL->Windows)
   --port <n>          Port (default 8787)
   --api-key <key>     Command Code API key for this run (not saved)
-  --setup-opencode    Write the OpenCode provider config and exit
+  --setup-opencode    Write the OpenCode provider config (opencode.jsonc) and exit
+  --client-host <a>   Address opencode connects to: addr, or 'auto'/'windows'
+                      (WSL: resolves the Windows host IP)
+  --env-key <NAME>    Env var name interpolated as apiKey in the config
+                      (default MI_PROXY_API_KEY)
   --sufix <text>      Rename the OpenCode provider to "CC <text>"
   -h, --help          Show this help
   -V, --version       Show version
@@ -33,9 +41,15 @@ Examples:
   ${NAME} auth login --force
   ${NAME} auth logout
   ${NAME} serve --host 127.0.0.1 --port 8787
-  ${NAME} --setup-opencode
-  ${NAME} --setup-opencode --sufix beta
-  ${NAME} --sufix dev             Rename the provider, then start the server`;
+  ${NAME} --setup-opencode                        proxy runs in the same WSL
+  ${NAME} --setup-opencode --client-host auto     proxy runs on the Windows host
+  ${NAME} --setup-opencode --sufix beta --env-key MI_PROXY_API_KEY
+  ${NAME} --sufix dev             Rename the provider, then start the server
+
+WSL notes:
+  - Proxy in WSL:     ${NAME} --setup-opencode   (defaults to 127.0.0.1)
+  - Proxy on Windows: run it there with ${NAME} --host 0.0.0.0, then inside WSL
+                      run ${NAME} --setup-opencode --client-host auto`;
 }
 
 function fail(msg, code = 1) {
@@ -172,9 +186,11 @@ async function main() {
   }
 
     const SUFFIX_FLAG = "--sufix";
+    const CLIENT_HOST_FLAG = "--client-host";
+    const ENV_KEY_FLAG = "--env-key";
 
   const flags = new Set(argv.filter((a) => a.startsWith("-")));
-  for (const f of [KEY_FLAG, SETUP_FLAG, SUFFIX_FLAG, "--host", "--port"]) flags.delete(f);
+  for (const f of [KEY_FLAG, SETUP_FLAG, SUFFIX_FLAG, CLIENT_HOST_FLAG, ENV_KEY_FLAG, "--host", "--port"]) flags.delete(f);
   const leftover = [...flags].filter((f) => f !== "-h" && f !== "--help" && f !== "-V" && f !== "--version");
   if (leftover.length) fail(`unknown option ${leftover[0]}`);
 
@@ -197,17 +213,56 @@ async function main() {
     if (!suffix) fail(`${SUFFIX_FLAG} needs a non-empty text`);
   }
 
+  const clientHostIdx = args.indexOf(CLIENT_HOST_FLAG);
+  let clientHost;
+  if (clientHostIdx !== -1) {
+    clientHost = args[clientHostIdx + 1];
+    if (!clientHost || clientHost.startsWith("--")) fail(`missing value for ${CLIENT_HOST_FLAG}`);
+    clientHost = clientHost.trim();
+    if (!clientHost) fail(`${CLIENT_HOST_FLAG} needs an address, 'auto' or 'windows'`);
+  }
+
+  const envKeyIdx = args.indexOf(ENV_KEY_FLAG);
+  let envKey;
+  if (envKeyIdx !== -1) {
+    envKey = args[envKeyIdx + 1];
+    if (!envKey || envKey.startsWith("--")) fail(`missing value for ${ENV_KEY_FLAG}`);
+    envKey = envKey.trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(envKey)) fail(`${ENV_KEY_FLAG} must be a valid env var name`);
+  }
+
   if (ask(argv, SETUP_FLAG)) {
     try {
-      const { file, baseURL, name } = writeOpencodeConfig({
+      const {
+        file,
+        baseURL,
+        name,
+        envKey: usedEnvKey,
+        fromWindowsHost,
+        legacyFrom,
+      } = writeOpencodeConfig({
         host: host || "127.0.0.1",
         port: port || 8787,
         suffix,
+        clientHost,
+        envKey,
       });
-      log(`OpenCode config written to ${file}`);
+      log(`OpenCode config written to ${file} (JSONC)`);
       log(`provider name: ${name}`);
       log(`provider baseURL: ${baseURL}`);
-      log(`model: deepseek-v4-pro (proxy-managed)`);
+      log(`provider apiKey: {env:${usedEnvKey}} (export ${usedEnvKey}=... before starting opencode)`);
+      log(`model: deepseek-v4-pro`);
+      if (!suffix) log(`tip: --sufix <text> renames the provider (e.g. "CC Rickysanta197")`);
+      if (fromWindowsHost) {
+        log(`WSL detected: baseURL points at the Windows host (${baseURL}).`);
+        log(`Make sure the proxy runs on Windows with: commandcode-api-proxy --host 0.0.0.0 --port ${port || 8787}`);
+      } else if (isWsl()) {
+        log(`WSL detected: baseURL points at 127.0.0.1, expecting the proxy inside this WSL.`);
+        log(`Run 'commandcode-api-proxy auth login' inside WSL (or run --setup-opencode --client-host auto to target the Windows proxy).`);
+      }
+      if (legacyFrom) {
+        log(`migrated existing config from ${legacyFrom}; you can remove that legacy file.`);
+      }
     } catch (err) {
       fail(err.message);
     }
