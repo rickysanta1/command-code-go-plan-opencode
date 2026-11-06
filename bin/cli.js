@@ -28,8 +28,8 @@ Options:
   --setup-opencode    Write the OpenCode provider config (opencode.jsonc) and exit
   --client-host <a>   Address opencode connects to: addr, or 'auto'/'windows'
                       (WSL: resolves the Windows host IP)
-  --env-key <NAME>    Env var name interpolated as apiKey in the config
-                      (default MI_PROXY_API_KEY)
+  --env-key <NAME>    Optional: interpolate apiKey from the env var NAME in the
+                      config (default is the static "proxy-managed" placeholder)
   --sufix <text>      Rename the OpenCode provider to "CC <text>"
   -h, --help          Show this help
   -V, --version       Show version
@@ -43,7 +43,7 @@ Examples:
   ${NAME} serve --host 127.0.0.1 --port 8787
   ${NAME} --setup-opencode                        proxy runs in the same WSL
   ${NAME} --setup-opencode --client-host auto     proxy runs on the Windows host
-  ${NAME} --setup-opencode --sufix beta --env-key MI_PROXY_API_KEY
+  ${NAME} --setup-opencode --sufix beta --env-key MI_PROXY_API_KEY  # opt-in env key
   ${NAME} --sufix dev             Rename the provider, then start the server
 
 WSL notes:
@@ -237,7 +237,7 @@ async function main() {
         file,
         baseURL,
         name,
-        envKey: usedEnvKey,
+        apiKey,
         fromWindowsHost,
         legacyFrom,
       } = writeOpencodeConfig({
@@ -250,7 +250,11 @@ async function main() {
       log(`OpenCode config written to ${file} (JSONC)`);
       log(`provider name: ${name}`);
       log(`provider baseURL: ${baseURL}`);
-      log(`provider apiKey: {env:${usedEnvKey}} (export ${usedEnvKey}=... before starting opencode)`);
+      if (envKey) {
+        log(`provider apiKey: {env:${envKey}} (export ${envKey}=... before starting opencode)`);
+      } else {
+        log(`provider apiKey: ${apiKey} (placeholder — the proxy uses its own saved key, opencode will not ask for one)`);
+      }
       log(`model: deepseek-v4-pro`);
       if (!suffix) log(`tip: --sufix <text> renames the provider (e.g. "CC Rickysanta197")`);
       if (fromWindowsHost) {

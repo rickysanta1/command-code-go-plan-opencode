@@ -67,7 +67,7 @@ env, then the saved key, then the per-request `Authorization` header.
 | `--api-key` | Command Code API key for this run (not saved) | — |
 | `--setup-opencode` | Generate the OpenCode provider config (`opencode.jsonc`) | — |
 | `--client-host <addr\|auto>` | Address opencode connects to; `auto`/`windows` resolves the Windows host IP from WSL | bind address |
-| `--env-key <NAME>` | Env var interpolated into `apiKey` in the opencode config | `MI_PROXY_API_KEY` |
+| `--env-key <NAME>` | Interpolate `apiKey` from env var NAME; by default a static `proxy-managed` placeholder is written | — |
 | `--sufix <text>` | Rename the OpenCode provider to `CC <text>` | — |
 | `-h, --help` | Show help | — |
 | `-V, --version` | Show version | — |
@@ -93,7 +93,7 @@ other providers and settings.
       "name": "CC",
       "options": {
         "baseURL": "http://127.0.0.1:8787/v1",
-        "apiKey": "{env:MI_PROXY_API_KEY}"
+        "apiKey": "proxy-managed"
       },
       "models": {
         "deepseek-v4-pro": { "name": "DeepSeek V4 Pro" }
@@ -103,9 +103,11 @@ other providers and settings.
 }
 ```
 
-`apiKey` uses opencode env interpolation: export the variable before starting
-opencode (`export MI_PROXY_API_KEY=x`). Its value does not matter upstream: the
-real key is held by the proxy (`auth login`).
+`apiKey` is only a placeholder: the proxy sends the real key saved with
+`auth login` and **ignores the header opencode sends**, so opencode will not ask
+for any key ("Connect to integration" completes without a prompt). To
+interpolate it from an environment variable instead, pass
+`--env-key MI_PROXY_API_KEY` and export that value before starting opencode.
 
 ### Renaming the provider
 

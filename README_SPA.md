@@ -68,7 +68,7 @@ entorno `COMMANDCODE_API_KEY`, luego la key guardada, luego el header
 | `--api-key` | API key de Command Code para esa ejecución (no se guarda) | — |
 | `--setup-opencode` | Genera la config del provider para OpenCode (`opencode.jsonc`) | — |
 | `--client-host <addr\|auto>` | Dirección a la que conecta opencode; `auto`/`windows` resuelve la IP del host Windows dentro de WSL | dirección de escucha |
-| `--env-key <NAME>` | Variable de entorno interpolada en `apiKey` en la config de opencode | `MI_PROXY_API_KEY` |
+| `--env-key <NAME>` | Interpola `apiKey` desde la variable `NAME`; por defecto usa el placeholder estático `proxy-managed` | — |
 | `--sufix <texto>` | Renombra el provider de OpenCode a `CC <texto>` | — |
 | `-h, --help` | Muestra la ayuda | — |
 | `-V, --version` | Muestra la versión | — |
@@ -94,7 +94,7 @@ conservan el resto de providers y ajustes.
       "name": "CC Rickysanta197",
       "options": {
         "baseURL": "http://127.0.0.1:8787/v1",
-        "apiKey": "{env:MI_PROXY_API_KEY}"
+        "apiKey": "proxy-managed"
       },
       "models": {
         "deepseek-v4-pro": { "name": "DeepSeek V4 Pro" }
@@ -104,9 +104,11 @@ conservan el resto de providers y ajustes.
 }
 ```
 
-`apiKey` usa interpolación de entorno de opencode: exporta la variable antes de
-arrancar opencode (`export MI_PROXY_API_KEY=x`). El contenido no importa para el
-upstream: la key real la guarda el proxy (`auth login`).
+`apiKey` es solo un placeholder: el proxy envía la key real que guardaste con
+`auth login` y **ignora el header que envía opencode**, así que opencode no te
+pedirá ninguna key ("Connect to integration" queda listo sin pedir nada). Si
+prefieres interpolarla desde una variable de entorno, usa
+`--env-key MI_PROXY_API_KEY` y exporta ese valor antes de arrancar opencode.
 
 ## OpenCode dentro de WSL
 
