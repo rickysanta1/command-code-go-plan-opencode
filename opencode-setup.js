@@ -4,11 +4,8 @@ import { join, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 
 export const BASE_NAME = "CC";
-// apiKey placeholder sent to the proxy. The proxy holds the real key (auth
-// login) and ignores this header value while a saved key exists, so any
-// non-empty literal avoids opencode's "Connect to integration" key prompt.
-// Pass --env-key <NAME> to switch to {env:NAME} interpolation instead.
-export const PLACEHOLDER_KEY = "proxy-managed";
+// Env var whose value opencode interpolates into apiKey. Override with --env-key.
+export const DEFAULT_ENV_KEY = "MI_PROXY_API_KEY";
 
 const LEGACY_FILE = join(homedir(), ".config", "opencode", "opencode.json");
 
@@ -185,17 +182,16 @@ function writeConfigFile(file, cfg) {
 
 // Only the provider.commandcode block is generated. The caller merges it into
 // whatever else the user already has in the opencode config.
-export function providerBlock(hostAddr, port, suffix, envKey) {
+export function providerBlock(hostAddr, port, suffix, envKey = DEFAULT_ENV_KEY) {
   return {
     commandcode: {
       npm: "@ai-sdk/openai-compatible",
       name: providerName(suffix),
       options: {
         baseURL: `http://${hostAddr}:${port}/v1`,
-        // Literal placeholder by default: the proxy authenticates with its own
-        // saved key and ignores this value, so opencode never asks for one.
-        // Only --env-key opts into {env:NAME} interpolation.
-        apiKey: envKey ? `{env:${envKey}}` : PLACEHOLDER_KEY,
+        // opencode interpolates {env:NAME} at startup; the proxy itself uses
+        // its saved key unless the client sends one.
+        apiKey: `{env:${envKey || DEFAULT_ENV_KEY}}`,
       },
       models: {
         "deepseek-v4-pro": { name: "DeepSeek V4 Pro" },
@@ -222,7 +218,7 @@ export function writeOpencodeConfig({
     file,
     baseURL: cfg.provider.commandcode.options.baseURL,
     name: cfg.provider.commandcode.name,
-    apiKey: cfg.provider.commandcode.options.apiKey,
+    envKey: cfg.provider.commandcode.options.apiKey.replace(/^\{env:|\}$/g, ""),
     fromWindowsHost: resolved.fromWindowsHost,
     legacyFrom,
   };
